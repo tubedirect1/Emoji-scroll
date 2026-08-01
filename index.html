@@ -12801,7 +12801,7 @@ function renderAdmin(){
       <button onclick="candyWheelTurns+=2;saveGame();showToast('🎰 +2 tours roue pour toi !','ok')" style="padding:.6rem;border:1px solid rgba(255,105,180,.3);border-radius:.8rem;background:rgba(255,105,180,.08);color:#ff69b4;font-family:'Bebas Neue';font-size:.65rem;cursor:pointer">🎰 +2 TOURS (MOI)</button>
     </div>
     <button onclick="['S1_sun','S1_wed','S2_sun','S2_wed','S3_sun','S3_wed'].forEach(k=>localStorage.removeItem('emojiScroll_botLaunched_'+k));showToast('🔄 Flags bot réinitialisés — relancement possible','ok')" style="width:100%;margin-top:.4rem;padding:.4rem;border:1px solid rgba(255,100,100,.2);border-radius:.7rem;background:rgba(255,100,100,.06);color:rgba(255,100,100,.6);font-family:'Bebas Neue';font-size:.58rem;cursor:pointer">🔄 RESET FLAG BOT (pour relancer)</button>
-    <button onclick="candyWheelTurns+=1;saveGame();showToast('🎰 +1 tour de roue pour tout le monde !','ok')" style="width:100%;margin-top:.4rem;padding:.5rem;border:1px solid rgba(255,105,180,.2);border-radius:.8rem;background:rgba(255,105,180,.06);color:#ff69b4;font-family:'Bebas Neue';font-size:.62rem;cursor:pointer">🌍 +1 TOUR POUR TOUS</button>
+    <button onclick="(async()=>{candyWheelTurns+=1;saveGame();try{await adminBroadcastToAll({id:'candy_wt_'+Date.now().toString(36),type:'admin_gift_wheel_turns',turns:1,evKey:'candy'});showToast('🌍 +1 tour de roue envoyé à TOUS les joueurs !','ok');}catch(e){showToast('❌ Erreur d\'envoi','err');}})()" style="width:100%;margin-top:.4rem;padding:.5rem;border:1px solid rgba(255,105,180,.2);border-radius:.8rem;background:rgba(255,105,180,.06);color:#ff69b4;font-family:'Bebas Neue';font-size:.62rem;cursor:pointer">🌍 +1 TOUR POUR TOUS</button>
   </div>
 
   <!-- Durée + scope -->
@@ -13370,8 +13370,11 @@ function renderAdmin(){
       </div>
     </div>
     <button onclick="(async()=>{const t=parseInt(document.getElementById('adm_candy_pub_turns').value||2);await publishCandyUpdate(t);})()" style="width:100%;padding:.6rem;border:1px solid rgba(0,212,255,.4);border-radius:.8rem;background:rgba(0,212,255,.12);color:#00d4ff;font-family:'Bebas Neue';font-size:.78rem;cursor:pointer">🌍 PUBLIER MISE À JOUR BONBON (S1)</button>
+    <button onclick="(async()=>{await retractEventUpdate('candy_update');})()" style="width:100%;margin-top:.3rem;padding:.5rem;border:1px solid rgba(239,68,68,.4);border-radius:.8rem;background:rgba(239,68,68,.1);color:#ef4444;font-family:'Bebas Neue';font-size:.7rem;cursor:pointer">🛑 RETIRER MISE À JOUR BONBON</button>
     <button onclick="(async()=>{await publishCatUpdate(2);showToast('🐱 Event Chat publié !','ok');})()" style="width:100%;margin-top:.4rem;padding:.6rem;border:1px solid rgba(167,139,250,.4);border-radius:.8rem;background:rgba(167,139,250,.12);color:#a78bfa;font-family:'Bebas Neue';font-size:.78rem;cursor:pointer">🌍 PUBLIER MISE À JOUR CHAT (S2)</button>
+    <button onclick="(async()=>{await retractEventUpdate('cat_update');})()" style="width:100%;margin-top:.3rem;padding:.5rem;border:1px solid rgba(239,68,68,.4);border-radius:.8rem;background:rgba(239,68,68,.1);color:#ef4444;font-family:'Bebas Neue';font-size:.7rem;cursor:pointer">🛑 RETIRER MISE À JOUR CHAT</button>
     <button onclick="(async()=>{await publishFoodUpdate(2);showToast('🍕 Event Festin publié !','ok');})()" style="width:100%;margin-top:.4rem;padding:.6rem;border:1px solid rgba(251,146,60,.4);border-radius:.8rem;background:rgba(251,146,60,.12);color:#fb923c;font-family:'Bebas Neue';font-size:.78rem;cursor:pointer">🌍 PUBLIER MISE À JOUR FESTIN (S3)</button>
+    <button onclick="(async()=>{await retractEventUpdate('food_update');})()" style="width:100%;margin-top:.3rem;padding:.5rem;border:1px solid rgba(239,68,68,.4);border-radius:.8rem;background:rgba(239,68,68,.1);color:#ef4444;font-family:'Bebas Neue';font-size:.7rem;cursor:pointer">🛑 RETIRER MISE À JOUR FESTIN</button>
   </div>
 
   <!-- Event Bonbon rapide -->
@@ -13403,7 +13406,8 @@ function renderAdmin(){
       <button onclick="catWheelTurns+=1;saveGame();renderAdmin();showToast('🐱 +1 tour !','ok')" style="padding:.5rem;border:1px solid rgba(167,139,250,.3);border-radius:.8rem;background:rgba(167,139,250,.08);color:#a78bfa;font-family:'Bebas Neue';font-size:.62rem;cursor:pointer">+1</button>
       <button onclick="catWheelTurns+=5;saveGame();renderAdmin();showToast('🐱 +5 tours !','ok')" style="padding:.5rem;border:1px solid rgba(167,139,250,.3);border-radius:.8rem;background:rgba(167,139,250,.08);color:#a78bfa;font-family:'Bebas Neue';font-size:.62rem;cursor:pointer">+5</button>
       <button onclick="catWheelTurns+=10;saveGame();renderAdmin();showToast('🐱 +10 tours !','ok')" style="padding:.5rem;border:1px solid rgba(167,139,250,.3);border-radius:.8rem;background:rgba(167,139,250,.08);color:#a78bfa;font-family:'Bebas Neue';font-size:.62rem;cursor:pointer">+10</button>
-    
+    </div>
+    <button onclick="(async()=>{catWheelTurns+=1;saveGame();try{await adminBroadcastToAll({id:'cat_wt_'+Date.now().toString(36),type:'admin_gift_wheel_turns',turns:1,evKey:'cat'});showToast('🌍 +1 tour de roue envoyé à TOUS les joueurs !','ok');}catch(e){showToast('❌ Erreur d\'envoi','err');}})()" style="width:100%;margin-bottom:.4rem;padding:.5rem;border:1px solid rgba(167,139,250,.2);border-radius:.8rem;background:rgba(167,139,250,.06);color:#a78bfa;font-family:'Bebas Neue';font-size:.62rem;cursor:pointer">🌍 +1 TOUR POUR TOUS</button>
     <button onclick="closePanel('adminPanel');setTimeout(openCatWheel,200)" style="width:100%;padding:.6rem;border:1px solid rgba(167,139,250,.5);border-radius:.85rem;background:linear-gradient(135deg,rgba(167,139,250,.2),rgba(124,58,237,.1));color:#a78bfa;font-family:'Bebas Neue';font-size:.78rem;letter-spacing:1px;cursor:pointer">🎰 OUVRIR LA ROUE CHAT</button></div>
   </div>
 
@@ -13479,6 +13483,7 @@ function renderAdmin(){
       <button onclick="foodWheelTurns+=5;saveGame();renderAdmin();showToast('🍕 +5 tours !','ok')" style="padding:.5rem;border:1px solid rgba(251,146,60,.3);border-radius:.8rem;background:rgba(251,146,60,.08);color:#fb923c;font-family:'Bebas Neue';font-size:.62rem;cursor:pointer">+5</button>
       <button onclick="foodWheelTurns+=10;saveGame();renderAdmin();showToast('🍕 +10 tours !','ok')" style="padding:.5rem;border:1px solid rgba(251,146,60,.3);border-radius:.8rem;background:rgba(251,146,60,.08);color:#fb923c;font-family:'Bebas Neue';font-size:.62rem;cursor:pointer">+10</button>
     </div>
+    <button onclick="(async()=>{foodWheelTurns+=1;saveGame();try{await adminBroadcastToAll({id:'food_wt_'+Date.now().toString(36),type:'admin_gift_wheel_turns',turns:1,evKey:'food'});showToast('🌍 +1 tour de roue envoyé à TOUS les joueurs !','ok');}catch(e){showToast('❌ Erreur d\'envoi','err');}})()" style="width:100%;margin-bottom:.4rem;padding:.5rem;border:1px solid rgba(251,146,60,.2);border-radius:.8rem;background:rgba(251,146,60,.06);color:#fb923c;font-family:'Bebas Neue';font-size:.62rem;cursor:pointer">🌍 +1 TOUR POUR TOUS</button>
     <button onclick="closePanel('adminPanel');setTimeout(openFoodWheel,200)" style="width:100%;padding:.6rem;border:1px solid rgba(251,146,60,.5);border-radius:.85rem;background:linear-gradient(135deg,rgba(251,146,60,.2),rgba(234,88,12,.1));color:#fb923c;font-family:'Bebas Neue';font-size:.78rem;letter-spacing:1px;cursor:pointer">🎰 OUVRIR LA ROUE NOURRITURE</button>
   </div>
 
@@ -14199,7 +14204,6 @@ function showSnapCinematic(auraEvents, target, isInf, dur){
       ov.style.opacity='1';
       ov.style.transition='';
       cancelAnimationFrame(animId);
-      showAuraEventAnnounce&&showAuraEventAnnounce(auraEvents);
       const who=target==='all'?'🌍 TOUS les joueurs':'👤 toi';
       showToast(`🫰 SNAP ! ${auraEvents.length} Auramojis activés pour `+who+` !`,'ok');
     },700);
@@ -15603,7 +15607,7 @@ function applyEvBg(def){
   // Pour luck6/8/10 utiliser leur propre type de particules
   var ptType=(['luck6','luck8','luck10'].includes(def.key))?def.key:(def.bg||'aura');
   showEvParticles(ptType,true);
-  if(def.rarity==='aura') showAuraEventAnnounce([def]);
+  if(def.rarity==='aura') showEventAnnounce(def);
 }
 function showEventAnnounce(ev){
   const el=document.getElementById('evAnnounce');if(!el)return;
@@ -18233,7 +18237,7 @@ function _wrapEvParticles(evObj){
   const type=evObj.bg||'aura';
   showEvParticles(type);
   if(evObj.rarity==='aura'){
-    showAuraEventAnnounce([evObj]);
+    showEventAnnounce(evObj);
   }
 }
 
@@ -18278,7 +18282,7 @@ function adminApplySelEvents(){
     const ev=EVENTS.find(function(x){return x.key===e.key;});
     return ev&&ev.rarity==='aura'&&(e.end===Infinity||Date.now()<e.end);
   }).map(function(e){return EVENTS.find(function(x){return x.key===e.key;});}).filter(Boolean);
-  if(allAuraActive.length)setTimeout(function(){showAuraEventAnnounce(allAuraActive);},300);
+  if(allAuraActive.length)setTimeout(function(){try{showSnapCinematic(allAuraActive, target, isInfinite, isInfinite?120000:dur);}catch(e){}},300);
   // ── Si "tous les joueurs" est choisi, diffuser réellement via Supabase ──
   if(target==='all'&&_broadcastEvs.length){
     try{
@@ -18328,6 +18332,36 @@ async function publishEventUpdate(type, wheelTurns){
   showToast(`📡 Event "${type}" publié — tous les joueurs le recevront !`,'ok');
 }
 
+// Retirer une mise à jour saisonnière (candy/cat/food) pour tous les joueurs
+async function retractEventUpdate(type){
+  // Désactiver en base tous les events actifs de ce type
+  if(SUPA_ONLINE){
+    try{
+      const {data:old}=await _supa.from('admin_events').select('id, event_data').eq('active',true);
+      if(old){
+        for(const row of old){
+          const t=(typeof row.event_data==='object' ? row.event_data?.type : null);
+          if(t===type){
+            await _supa.from('admin_events').update({active:false}).eq('id',row.id).catch(()=>{});
+          }
+        }
+      }
+    }catch(e){ console.warn('retractEventUpdate error',e); }
+    // Diffuser un ordre de retrait explicite pour que les joueurs déjà connectés arrêtent immédiatement
+    try{
+      const bc={id:'retract_'+type+'_'+Date.now().toString(36),type:'event_retract',eventType:type,ts:Date.now()};
+      await adminBroadcastToAll(bc);
+    }catch(e){ console.warn('retractEventUpdate broadcast error',e); }
+  }
+  // Appliquer localement tout de suite chez l'admin aussi
+  try{
+    if(type==='candy_update'){ stopCandyRain(); window._candyServerActive=false; }
+    else if(type==='cat_update'){ stopCatRain(); window._catServerActive=false; }
+    else if(type==='food_update'){ stopFoodRain(); window._foodServerActive=false; }
+  }catch(e){}
+  showToast(`🛑 Mise à jour "${type}" retirée pour tous les joueurs`,'ok');
+}
+
 // Alias spécifiques pour chaque semaine
 async function publishCandyUpdate(wheelTurns){ return publishEventUpdate('candy_update', wheelTurns||2); }
 async function publishCatUpdate(wheelTurns){ return publishEventUpdate('cat_update', wheelTurns||2); }
@@ -18340,13 +18374,12 @@ async function publishFoodUpdate(wheelTurns){ return publishEventUpdate('food_up
 async function adminBroadcastToAll(bc){
   // 1. Envoyer via Supabase (tous les joueurs)
   if(SUPA_ONLINE){
-    try{
-      await _supa.from('admin_events').insert({
-        active: true,
-        event_data: bc,
-        created_at: new Date().toISOString()
-      });
-    }catch(e){ console.warn('adminBroadcastToAll Supabase error',e); }
+    const {error}=await _supa.from('admin_events').insert({
+      active: true,
+      event_data: bc,
+      created_at: new Date().toISOString()
+    });
+    if(error){ console.warn('adminBroadcastToAll Supabase error',error); throw error; }
   }
   // L'admin voit l'effet immédiatement (déjà appliqué localement)
   _lastBcId = bc.id;
@@ -19514,14 +19547,21 @@ function applyBroadcast(bc){
       const isInf=bc.durMs==='inf';
       const dur=isInf?Infinity:(bc.durMs||120000);
       const keys=bc.auraKeys||[];
+      const _recvAuraEvs=[];
       keys.forEach(k=>{
         const idx=adminMultiEvents.findIndex(e=>e.key===k.key);
         if(idx>=0) adminMultiEvents.splice(idx,1);
         adminMultiEvents.push({key:k.key,end:isInf?Infinity:Date.now()+dur,target:'all',auraId:k.auraId||null,color:k.color});
-        try{showEvParticles('aura',true);}catch(e){}
+        const evDef=typeof EVENTS!=='undefined'?EVENTS.find(x=>x.key===k.key):null;
+        if(evDef)_recvAuraEvs.push(evDef);
       });
       try{updateUI();}catch(e){}
-      showToast('✨ L\'admin a activé TOUS les Auramojis pour tous les joueurs !','ok');
+      // Rejouer la même cinématique plein écran que celle vue en local par l'admin
+      if(_recvAuraEvs.length){
+        try{ showSnapCinematic(_recvAuraEvs, 'all', isInf, isInf?120000:dur); }catch(e){ console.warn('showSnapCinematic recv error',e); }
+      } else {
+        showToast('✨ L\'admin a activé TOUS les Auramojis pour tous les joueurs !','ok');
+      }
     } else if(bc.action==='multi_event_all'){
       const isInf=bc.durMs==='inf';
       const dur=isInf?Infinity:(bc.durMs||120000);
@@ -19531,15 +19571,20 @@ function applyBroadcast(bc){
         const idx=adminMultiEvents.findIndex(e=>e.key===k.key);
         if(idx>=0) adminMultiEvents.splice(idx,1);
         adminMultiEvents.push({key:k.key,end:isInf?Infinity:Date.now()+dur,target:'all',auraId:k.auraId||null,color:k.color});
-        try{showEvParticles(k.bg||'aura',true);}catch(e){}
         if(k.rarity==='aura'){
           const evDef=typeof EVENTS!=='undefined'?EVENTS.find(x=>x.key===k.key):null;
           if(evDef)auraEvsRecv.push(evDef);
+        } else {
+          try{showEvParticles(k.bg||'aura',true);}catch(e){}
         }
       });
       try{updateUI();}catch(e){}
-      showToast('🔥 L\'admin a activé '+evs.length+' event(s) pour tous les joueurs !','ok');
-      if(auraEvsRecv.length)setTimeout(()=>{try{showAuraEventAnnounce(auraEvsRecv);}catch(e){}},300);
+      if(auraEvsRecv.length){
+        // Au moins une aura dans le lot → rejouer la vraie cinématique plein écran comme en local
+        try{ showSnapCinematic(auraEvsRecv, 'all', isInf, isInf?120000:dur); }catch(e){ console.warn('showSnapCinematic recv error',e); }
+      } else {
+        showToast('🔥 L\'admin a activé '+evs.length+' event(s) pour tous les joueurs !','ok');
+      }
     } else if(bc.action==='give_emoji_all'){
       const slots=effSlots();
       const toAdd=Math.min(bc.count||1,slots-inventory.length);
@@ -19622,6 +19667,15 @@ function applyBroadcast(bc){
     try{saveGame();}catch(e){}
     showToast(`🎁 L'admin t'a offert ${qty}× ${inp} ${evLabel} !`,'ok');
     showBroadcast({id:bc.id+'_gift',type:'admin_notif',message:`${evIcon} <b>L'admin t'a offert ${qty}× ${inp}</b> avec mutation ${evLabel} !`,icon:'🎁'});
+  } else if(bc.type==='event_retract'){
+    // Retrait explicite d'une mise à jour saisonnière (candy/cat/food), déjà connu du joueur
+    try{
+      if(bc.eventType==='candy_update'){ stopCandyRain(); window._candyServerActive=false; }
+      else if(bc.eventType==='cat_update'){ stopCatRain(); window._catServerActive=false; }
+      else if(bc.eventType==='food_update'){ stopFoodRain(); window._foodServerActive=false; }
+      updateCandyVisibility();
+    }catch(e){}
+    showToast('🛑 Une mise à jour a été retirée par l\'admin','ok');
   } else if(bc.type==='candy_update'||bc.type==='cat_update'||bc.type==='food_update'){
     // Mise à jour event (Bonbon/Chat/Nourriture) — persistante dans Supabase
     // Reçue par tout joueur qui se connecte, même en retard
