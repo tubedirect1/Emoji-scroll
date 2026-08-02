@@ -7036,9 +7036,21 @@ function updateUI(){
         if(a)_activeAuras.push(a);
       }
       if(_activeAuras.length){
-        _auraBar.style.display='none';
+        // Calculer le temps restant le plus court parmi les auras actives (pour le timer affiché)
+        let _minEnd=Infinity;
+        adminMultiEvents.forEach(ev=>{
+          if(ev.key&&ev.key.startsWith('aura_')&&(ev.end===Infinity||_now3<ev.end)&&ev.auraId){
+            if(ev.end!==Infinity&&ev.end<_minEnd)_minEnd=ev.end;
+          }
+        });
+        const _remSec=_minEnd===Infinity?null:Math.max(0,Math.ceil((_minEnd-_now3)/1000));
+        const _timerTxt=_remSec===null?'∞':(_remSec>=60?Math.floor(_remSec/60)+'m'+(_remSec%60).toString().padStart(2,'0')+'s':_remSec+'s');
+        _auraBar.innerHTML=_activeAuras.map(a=>`<span style="display:inline-flex;align-items:center;gap:.15rem;color:${a.color||'#facc15'}">${a.icon||'✨'} ${a.name||''}</span>`).join(' · ')
+          + ` <span style="opacity:.6">⏱ ${_timerTxt}</span>`;
+        _auraBar.style.display='flex';
       } else {
         _auraBar.style.display='none';
+        _auraBar.innerHTML='';
       }
     }
 
@@ -14027,7 +14039,7 @@ function adminSnapAllAuras(target){
         id:Date.now().toString(36),
         type:'admin_action',
         action:'aura_snap_all',
-        auraKeys:auraEvents.map(ev=>({key:ev.key,auraId:ev.auraId||null,color:ev.color})),
+        auraKeys:auraEvents.map(ev=>({key:ev.key,auraId:ev.auraId||null,color:ev.color,bg:ev.bg||'aura'})),
         durMs:isInf?'inf':dur,
         ts:Date.now()
       };
@@ -16102,8 +16114,7 @@ function showAddAccountForm(slotIdx, mode){
     wrap.innerHTML=`
       <div style="font-family:'Bebas Neue';font-size:.75rem;letter-spacing:2px;color:#00d4ff;margin-bottom:.6rem">➕ CRÉER UN COMPTE</div>
       <input id="addAccName" type="text" placeholder="Pseudo (min. 2 car.)" maxlength="20"
-        style="width:100%;box-sizing:border-box;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:.6rem;color:#fff;padding:.5rem .7rem;font-size:.75rem;margin-bottom:.35rem;outline:none;text-transform:uppercase;font-family:'Bebas Neue';letter-spacing:1px"
-        oninput="this.value=this.value.toUpperCase()">
+        style="width:100%;box-sizing:border-box;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:.6rem;color:#fff;padding:.5rem .7rem;font-size:.75rem;margin-bottom:.35rem;outline:none;font-family:'Bebas Neue';letter-spacing:1px">
       <input id="addAccPw" type="password" placeholder="Mot de passe (min. 4 car.)"
         style="width:100%;box-sizing:border-box;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:.6rem;color:#fff;padding:.5rem .7rem;font-size:.75rem;margin-bottom:.35rem;outline:none">
       <input id="addAccPw2" type="password" placeholder="Confirmer le mot de passe"
@@ -16119,8 +16130,7 @@ function showAddAccountForm(slotIdx, mode){
     wrap.innerHTML=`
       <div style="font-family:'Bebas Neue';font-size:.75rem;letter-spacing:2px;color:#facc15;margin-bottom:.6rem">🔑 CONNECTER UN COMPTE</div>
       <input id="addAccName" type="text" placeholder="Pseudo"
-        style="width:100%;box-sizing:border-box;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:.6rem;color:#fff;padding:.5rem .7rem;font-size:.75rem;margin-bottom:.35rem;outline:none;text-transform:uppercase;font-family:'Bebas Neue';letter-spacing:1px"
-        oninput="this.value=this.value.toUpperCase()">
+        style="width:100%;box-sizing:border-box;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:.6rem;color:#fff;padding:.5rem .7rem;font-size:.75rem;margin-bottom:.35rem;outline:none;font-family:'Bebas Neue';letter-spacing:1px">
       <input id="addAccPw" type="password" placeholder="Mot de passe"
         style="width:100%;box-sizing:border-box;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:.6rem;color:#fff;padding:.5rem .7rem;font-size:.75rem;margin-bottom:.35rem;outline:none">
       <div id="addAccMsg" style="font-size:.62rem;color:#ef4444;min-height:.75rem;margin-bottom:.3rem"></div>
@@ -16133,7 +16143,7 @@ function showAddAccountForm(slotIdx, mode){
   }
 }
 
-function doAddAccountCreate(){
+async function doAddAccountCreate(){
   const wrap=document.getElementById('addAccFormWrap');
   const slotIdx=parseInt(wrap?.dataset.slot??0);
   const name=(document.getElementById('addAccName')?.value||'').trim();
@@ -16144,6 +16154,33 @@ function doAddAccountCreate(){
   if(ADMIN_ACCOUNTS&&ADMIN_ACCOUNTS[name.toLowerCase()]){setMsg('❌ Ce pseudo est réservé');return;}
   if(pw.length<4){setMsg('Mot de passe trop court (min. 4 caractères)');return;}
   if(pw!==pw2){setMsg('Les mots de passe ne correspondent pas');return;}
+
+  if(SUPA_ONLINE){
+    setMsg('⏳ Création du compte...');
+    try{
+      _initSupabase();
+      const existing=await DB.getProfileByUsername(name);
+      if(existing){setMsg('❌ Pseudo déjà utilisé — choisis-en un autre');return;}
+      const fakeEmail=name.toLowerCase().replace(/[^a-z0-9]/g,'')+'_'+Date.now()+'@emoji-scroll.game';
+      const authData=await DB.signUp(fakeEmail,pw);
+      let userId=authData?.user?.id;
+      if(!userId){
+        try{ const signInData=await DB.signIn(fakeEmail,pw); userId=signInData?.user?.id; }catch(e2){}
+      }
+      if(!userId){ setMsg('⚠️ Vérifie tes emails pour confirmer ton compte, puis connecte-toi.'); return; }
+      const profile=await DB.createProfile(userId,name,fakeEmail);
+      const slots=getAccSlots();
+      slots[slotIdx]={name,id:userId,avatar:'👤'};
+      setAccSlots(slots);
+      await _doSwitchToAccount(name,pw,userId,slotIdx,true,profile);
+      setMsg('');
+    }catch(e){
+      if(e.message&&e.message.includes('already'))setMsg('❌ Pseudo déjà utilisé — essaie de te connecter');
+      else setMsg('❌ Erreur : '+e.message);
+    }
+    return;
+  }
+  // Fallback hors-ligne uniquement
   if(pseudoExists(name)){setMsg('❌ Pseudo déjà utilisé');return;}
   const acc=saveAccount(name,pw);
   if(!acc){setMsg('Erreur lors de la création');return;}
@@ -16152,10 +16189,10 @@ function doAddAccountCreate(){
   slots[slotIdx]={name:acc.name,id:acc.id,avatar:'👤'};
   setAccSlots(slots);
   // Switch to this account
-  _doSwitchToAccount(acc.name,pw,acc.id,slotIdx,true);
+  await _doSwitchToAccount(acc.name,pw,acc.id,slotIdx,true);
 }
 
-function doAddAccountLogin(){
+async function doAddAccountLogin(){
   const wrap=document.getElementById('addAccFormWrap');
   const slotIdx=parseInt(wrap?.dataset.slot??0);
   const name=(document.getElementById('addAccName')?.value||'').trim();
@@ -16163,21 +16200,47 @@ function doAddAccountLogin(){
   const setMsg=t=>{const m=document.getElementById('addAccMsg');if(m)m.textContent=t;};
   if(!name||!pw){setMsg('Remplis tous les champs');return;}
   if(ADMIN_ACCOUNTS&&checkAdminAccount(name,pw)){
-    // Admin account
+    // Admin account (local, indépendant de Supabase)
     const slots=getAccSlots();
     const id='admin_'+name.toLowerCase();
     slots[slotIdx]={name,id,avatar:'🛡️'};
     setAccSlots(slots);
-    _doSwitchToAccount(name,pw,id,slotIdx,false);
+    await _doSwitchToAccount(name,pw,id,slotIdx,false);
     return;
   }
+  if(SUPA_ONLINE){
+    setMsg('⏳ Connexion...');
+    try{
+      _initSupabase();
+      const profile=await DB.getProfileByUsername(name);
+      if(!profile){setMsg('❌ Pseudo introuvable');return;}
+      const fakeEmail=profile.email||name.toLowerCase().replace(/[^a-z0-9]/g,'')+'_'+((profile.created_at&&new Date(profile.created_at).getTime())||'')+'@emoji-scroll.game';
+      let authData=null;
+      try{ authData=await DB.signIn(fakeEmail,pw); }
+      catch(e1){
+        const fallbackEmail=name.toLowerCase().replace(/[^a-z0-9]/g,'')+'@emoji-scroll.game';
+        try{ authData=await DB.signIn(fallbackEmail,pw); }
+        catch(e2){ throw new Error(e1.message); }
+      }
+      const slots=getAccSlots();
+      slots[slotIdx]={name:profile.username,id:authData.user.id,avatar:'👤'};
+      setAccSlots(slots);
+      await _doSwitchToAccount(profile.username,pw,authData.user.id,slotIdx,false,profile);
+      setMsg('');
+    }catch(e){
+      if(e.message&&e.message.includes('Invalid'))setMsg('❌ Mot de passe incorrect');
+      else setMsg('❌ Erreur connexion : '+e.message);
+    }
+    return;
+  }
+  // Fallback hors-ligne uniquement
   const result=loadAccount(name,pw);
   if(!result){setMsg('❌ Pseudo introuvable');return;}
   if(result==='wrong_pw'){setMsg('❌ Mot de passe incorrect');return;}
   const slots=getAccSlots();
   slots[slotIdx]={name:result.name,id:result.id,avatar:'👤'};
   setAccSlots(slots);
-  _doSwitchToAccount(result.name,pw,result.id,slotIdx,false);
+  await _doSwitchToAccount(result.name,pw,result.id,slotIdx,false);
 }
 
 function switchAccountSlot(slotIdx){
@@ -16188,17 +16251,17 @@ function switchAccountSlot(slotIdx){
     `Passer sur le compte <strong>${acc.name}</strong> ?<br><br>Ta progression actuelle sera sauvegardée.`,
     [
       {text:'Annuler',cls:'ghost'},
-      {text:'🔄 CHANGER',cls:'primary',fn:()=>{
-        // Load account pw from local store
+      {text:'🔄 CHANGER',cls:'primary',fn:async()=>{
+        // Load account pw from local store (fallback si le mot de passe n'a jamais été saisi cette session)
         const all=JSON.parse(localStorage.getItem('emojiScroll_accounts')||'{}');
         const stored=all[acc.name.toLowerCase()];
-        _doSwitchToAccount(acc.name,stored?.pw||'',acc.id,slotIdx,false);
+        await _doSwitchToAccount(acc.name,stored?.pw||'',acc.id,slotIdx,false);
       }}
     ]
   );
 }
 
-function _doSwitchToAccount(name,pw,id,slotIdx,isNew){
+async function _doSwitchToAccount(name,pw,id,slotIdx,isNew,profileArg){
   // Save current account first
   _switchingAccount=true;
   saveGame();
@@ -16207,11 +16270,31 @@ function _doSwitchToAccount(name,pw,id,slotIdx,isNew){
   // Reset state
   resetAllVars();
   playerName=name;accountPassword=pw;accountId=id;
-  // Load save for this account
-  const raw=localStorage.getItem('emojiScroll_save_'+id);
-  if(raw&&!isNew){
-    try{const d=JSON.parse(raw);if(d.playerName)playerName=d.playerName;loadGameFromData(d);}
-    catch(e){}
+  _supaUserId=id;
+  // Charger la sauvegarde : Supabase en priorité si en ligne, localStorage sinon
+  let loaded=false;
+  if(SUPA_ONLINE&&!isNew){
+    try{
+      const cloudSave=await DB.pullSave(id);
+      if(cloudSave){
+        if(cloudSave.playerName)playerName=cloudSave.playerName;
+        loadGameFromData(cloudSave);
+        loaded=true;
+      }
+    }catch(e){ console.warn('_doSwitchToAccount pullSave error',e); }
+  }
+  if(!loaded&&!isNew){
+    const raw=localStorage.getItem('emojiScroll_save_'+id);
+    if(raw){
+      try{const d=JSON.parse(raw);if(d.playerName)playerName=d.playerName;loadGameFromData(d);}
+      catch(e){}
+    }
+  }
+  // Vérifier le statut admin réel depuis le profil Supabase si disponible
+  if(profileArg&&profileArg.is_admin){
+    adminUnlocked=true;isAdmin=true;
+    const abr=document.getElementById('adminBtnRow');
+    if(abr)abr.style.display='block';
   }
   checkAdminOnLogin&&checkAdminOnLogin(name);
   profileAvatar=null;loadProfileSlots&&loadProfileSlots();loadProfileAvatar&&loadProfileAvatar();
@@ -19552,10 +19635,12 @@ function applyBroadcast(bc){
         const idx=adminMultiEvents.findIndex(e=>e.key===k.key);
         if(idx>=0) adminMultiEvents.splice(idx,1);
         adminMultiEvents.push({key:k.key,end:isInf?Infinity:Date.now()+dur,target:'all',auraId:k.auraId||null,color:k.color});
+        try{showEvParticles(k.bg||'aura',true);}catch(e){}
         const evDef=typeof EVENTS!=='undefined'?EVENTS.find(x=>x.key===k.key):null;
         if(evDef)_recvAuraEvs.push(evDef);
       });
       try{updateUI();}catch(e){}
+      try{_renderEvSidebar();}catch(e){}
       // Rejouer la même cinématique plein écran que celle vue en local par l'admin
       if(_recvAuraEvs.length){
         try{ showSnapCinematic(_recvAuraEvs, 'all', isInf, isInf?120000:dur); }catch(e){ console.warn('showSnapCinematic recv error',e); }
@@ -19571,14 +19656,14 @@ function applyBroadcast(bc){
         const idx=adminMultiEvents.findIndex(e=>e.key===k.key);
         if(idx>=0) adminMultiEvents.splice(idx,1);
         adminMultiEvents.push({key:k.key,end:isInf?Infinity:Date.now()+dur,target:'all',auraId:k.auraId||null,color:k.color});
+        try{showEvParticles(k.bg||'aura',true);}catch(e){}
         if(k.rarity==='aura'){
           const evDef=typeof EVENTS!=='undefined'?EVENTS.find(x=>x.key===k.key):null;
           if(evDef)auraEvsRecv.push(evDef);
-        } else {
-          try{showEvParticles(k.bg||'aura',true);}catch(e){}
         }
       });
       try{updateUI();}catch(e){}
+      try{_renderEvSidebar();}catch(e){}
       if(auraEvsRecv.length){
         // Au moins une aura dans le lot → rejouer la vraie cinématique plein écran comme en local
         try{ showSnapCinematic(auraEvsRecv, 'all', isInf, isInf?120000:dur); }catch(e){ console.warn('showSnapCinematic recv error',e); }
@@ -21600,16 +21685,16 @@ async function startAdminBot(forceWeek){
       auraEvents.forEach(ev=>{
         adminMultiEvents = adminMultiEvents.filter(e=>e.key!==ev.key);
         adminMultiEvents.push({key:ev.key, end:Date.now()+_snapDur, target:'all', auraId:ev.auraId||null, color:ev.color});
-        _broadcastKeys.push({key:ev.key,auraId:ev.auraId||null,color:ev.color});
+        _broadcastKeys.push({key:ev.key,auraId:ev.auraId||null,color:ev.color,bg:ev.bg||'aura'});
       });
       // Flammes dans le même snap, même durée
       ['aura_ember','aura_inferno'].forEach(k=>{
         const ev=typeof EVENTS!=='undefined'?EVENTS.find(e=>e.key===k):null;
-        if(ev){ adminMultiEvents=adminMultiEvents.filter(e=>e.key!==k); adminMultiEvents.push({key:k,end:Date.now()+_snapDur,target:'all',auraId:ev.auraId||null,color:ev.color}); _broadcastKeys.push({key:k,auraId:ev.auraId||null,color:ev.color}); }
+        if(ev){ adminMultiEvents=adminMultiEvents.filter(e=>e.key!==k); adminMultiEvents.push({key:k,end:Date.now()+_snapDur,target:'all',auraId:ev.auraId||null,color:ev.color}); _broadcastKeys.push({key:k,auraId:ev.auraId||null,color:ev.color,bg:ev.bg||'aura'}); }
       });
       const lucky=Math.random()<0.5?'luck8':'luck10';
       const evL=EVENTS.find(e=>e.key===lucky);
-      if(evL){ adminMultiEvents=adminMultiEvents.filter(e=>e.key!==lucky); adminMultiEvents.push({key:lucky,end:Date.now()+_snapDur,target:'all',auraId:evL.auraId||null}); _broadcastKeys.push({key:lucky,auraId:evL.auraId||null}); try{showEvParticles(evL.bg||'aura',true);}catch(e){} }
+      if(evL){ adminMultiEvents=adminMultiEvents.filter(e=>e.key!==lucky); adminMultiEvents.push({key:lucky,end:Date.now()+_snapDur,target:'all',auraId:evL.auraId||null}); _broadcastKeys.push({key:lucky,auraId:evL.auraId||null,bg:evL.bg||'aura'}); try{showEvParticles(evL.bg||'aura',true);}catch(e){} }
       try{updateUI();}catch(e){}
       // ── Diffuser réellement aux autres joueurs ──
       try{
@@ -22299,16 +22384,16 @@ async function startWednesdayBot(forceWeek){
       auraEvents.forEach(ev=>{
         adminMultiEvents = adminMultiEvents.filter(e=>e.key!==ev.key);
         adminMultiEvents.push({key:ev.key, end:Date.now()+_snapDur, target:'all', auraId:ev.auraId||null, color:ev.color});
-        _broadcastKeysW.push({key:ev.key,auraId:ev.auraId||null,color:ev.color});
+        _broadcastKeysW.push({key:ev.key,auraId:ev.auraId||null,color:ev.color,bg:ev.bg||'aura'});
       });
       // Flammes incluses dans le même snap à la même durée
       ['aura_ember','aura_inferno'].forEach(k=>{
         const ev=EVENTS.find(e=>e.key===k);
-        if(ev){ adminMultiEvents=adminMultiEvents.filter(e=>e.key!==k); adminMultiEvents.push({key:k,end:Date.now()+_snapDur,target:'all',auraId:ev.auraId||null}); _broadcastKeysW.push({key:k,auraId:ev.auraId||null}); }
+        if(ev){ adminMultiEvents=adminMultiEvents.filter(e=>e.key!==k); adminMultiEvents.push({key:k,end:Date.now()+_snapDur,target:'all',auraId:ev.auraId||null}); _broadcastKeysW.push({key:k,auraId:ev.auraId||null,bg:ev.bg||'aura'}); }
       });
       const lucky=Math.random()<0.5?'luck8':'luck10';
       const evL=EVENTS.find(e=>e.key===lucky);
-      if(evL){ adminMultiEvents=adminMultiEvents.filter(e=>e.key!==lucky); adminMultiEvents.push({key:lucky,end:Date.now()+_snapDur,target:'all',auraId:evL.auraId||null}); _broadcastKeysW.push({key:lucky,auraId:evL.auraId||null}); }
+      if(evL){ adminMultiEvents=adminMultiEvents.filter(e=>e.key!==lucky); adminMultiEvents.push({key:lucky,end:Date.now()+_snapDur,target:'all',auraId:evL.auraId||null}); _broadcastKeysW.push({key:lucky,auraId:evL.auraId||null,bg:evL.bg||'aura'}); }
       try{updateUI();}catch(e){}
       // ── Diffuser réellement aux autres joueurs ──
       try{
